@@ -303,7 +303,7 @@ export function ArymaAssistant() {
               return (
                 <article
                   key={`${message.role}-${index}`}
-                  className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                  className={`max-w-[90%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
                     isUser
                       ? "ml-auto bg-teal-700 text-white"
                       : "mr-auto border border-black/10 bg-white text-black"

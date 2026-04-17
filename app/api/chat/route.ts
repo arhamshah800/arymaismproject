@@ -54,6 +54,21 @@ function getModelCandidates(): GoogleModelId[] {
   return [envModel, ...FALLBACK_MODELS.filter((modelId) => modelId !== envModel)];
 }
 
+function normalizeAssistantOutput(text: string): string {
+  const normalized = text
+    .replace(/\r\n/g, "\n")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s*[-*]\s+/gm, "• ")
+    .replace(/\*([^*\n]+)\*/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return normalized || "I can help with that. Please share one more detail so I can be specific.";
+}
+
 function buildSystemPrompt(mode: AssistantMode, businessProfile: BusinessProfile): string {
   const businessContext = [
     `Business Name: ${businessProfile?.businessName || "Not provided"}`,
@@ -67,11 +82,12 @@ function buildSystemPrompt(mode: AssistantMode, businessProfile: BusinessProfile
 You are Aryma ISM AI, an operations-focused assistant for small and medium food enterprises in the Dallas-Fort Worth area.
 Be practical, concise, and supportive.
 When information is missing, state assumptions clearly and give an action plan that can start today.
+Return plain text only. Do not use Markdown symbols (no # headers, no **bold**, no *italics*, no backticks).
 Default output format:
-1) Quick recommendation
-2) Why it works
-3) Step-by-step actions
-4) Optional risks to watch
+Quick recommendation:
+Why it works:
+Step-by-step actions:
+Optional risks to watch:
   `.trim();
 
   const modeInstructions: Record<AssistantMode, string> = {
@@ -167,7 +183,7 @@ export async function POST(req: Request) {
         });
 
         return Response.json({
-          answer: result.text.trim(),
+          answer: normalizeAssistantOutput(result.text),
           model: modelId,
         });
       } catch (error) {

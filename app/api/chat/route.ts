@@ -9,8 +9,11 @@ export async function POST(req: Request) {
   const result = streamText({
     model: google('gemini-1.5-flash'),
     messages,
+    // This is the "Brain's Instructions":
+    system: `You are the Aryma ISM AI, a specialized assistant for the Aryma Industrial Supply Management platform. 
+    Your goal is to help users manage inventory, track orders, and optimize logistics. 
+    Be professional, concise, and helpful. If a user asks who you are, identify as the Aryma ISM Assistant.`,
   });
 
-  // The command was renamed to this in the newest SDK version:
   return result.toUIMessageStreamResponse();
 }

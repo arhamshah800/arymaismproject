@@ -1,17 +1,12 @@
-import { google } from '@ai-sdk/google';
-import { streamText } from 'ai';
-
-// Allow responses up to 30 seconds
-export const maxDuration = 30;
-
-export async function POST(req: Request) {
-  const { messages } = await req.json();
-
-  const result = streamText({
-    model: google('gemini-1.5-flash'),
-    messages,
-  });
-
-  // This is the correct method for the newest SDK versions
-  return result.toUIMessageStreamResponse();
+export default function HomePage() {
+  return (
+    <main className="flex min-h-screen items-center justify-center px-6 py-16">
+      <div className="mx-auto w-full max-w-2xl rounded-2xl border border-black/10 bg-white p-8 shadow-sm">
+        <h1 className="text-3xl font-semibold tracking-tight text-black">Aryma ISM</h1>
+        <p className="mt-3 text-black/70">
+          The app is running. Your chat API route is available at <code>/api/chat</code>.
+        </p>
+      </div>
+    </main>
+  );
 }

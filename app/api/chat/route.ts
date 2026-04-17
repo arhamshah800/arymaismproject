@@ -1,7 +1,6 @@
 import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
-// Allow responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
@@ -12,6 +11,6 @@ export async function POST(req: Request) {
     messages,
   });
 
-  // This is the correct method for the newest SDK versions
+  // The command was renamed to this in the newest SDK version:
   return result.toUIMessageStreamResponse();
 }

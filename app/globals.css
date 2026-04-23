@@ -6,13 +6,26 @@
   --card: #fffdf7;
   --accent: #0f766e;
   --accent-soft: #ccfbf1;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --shadow-soft: 0 12px 35px rgba(0, 0, 0, 0.08);
 }
 
 body {
   background:
-    radial-gradient(circle at 10% 0%, #fef6e7 0%, transparent 40%),
-    radial-gradient(circle at 90% 10%, #e6fffb 0%, transparent 35%),
+    radial-gradient(circle at 10% 0%, #fef6e7 0%, transparent 28%),
+    radial-gradient(circle at 90% 10%, #e6fffb 0%, transparent 24%),
     var(--background);
   color: var(--foreground);
-  font-family: "Avenir Next", "SF Pro Text", "Segoe UI", sans-serif;
+  font-family: "Avenir Next", "Sora", "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: #99f6e4;
+  color: #042f2e;
 }

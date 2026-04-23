@@ -1,5 +1,5 @@
-import { ArymaAssistant } from "./components/aryma-assistant";
+import { AuthGate } from "./components/auth-gate";
 
 export default function HomePage() {
-  return <ArymaAssistant />;
+  return <AuthGate />;
 }

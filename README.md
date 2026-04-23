@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aryma ISM
 
-## Getting Started
+Professional restaurant workflow app with:
 
-First, run the development server:
+- Login/create-account flow
+- Business-aware dashboard workflows
+- AI assistant integration via `/api/chat`
+- Server-side auth with HttpOnly sessions
+- Managed Postgres persistence
+- App-level encrypted private data at rest
+
+## Requirements
+
+- Node.js 20+
+- npm 10+
+- A Postgres database URL (Neon/Supabase/etc.)
+
+## Environment Variables
+
+Create `.env.local` with:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+DATABASE_URL=postgresql://...
+APP_DATA_ENCRYPTION_KEY=...
+GOOGLE_GENERATIVE_AI_API_KEY=...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Generate Encryption Key
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Run:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run key:generate
+```
 
-## Learn More
+Use either printed value (`hex` or `base64`) as `APP_DATA_ENCRYPTION_KEY`.
 
-To learn more about Next.js, take a look at the following resources:
+## Local Development
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run db:init
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+App runs on [http://localhost:3000](http://localhost:3000).
 
-## Deploy on Vercel
+## Managed DB Migration Runbook (Step-by-Step)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Create a free managed Postgres project (for example Neon or Supabase).
+2. Copy the connection string into `DATABASE_URL`.
+3. Generate an app encryption key:
+   ```bash
+   npm run key:generate
+   ```
+4. Save it as `APP_DATA_ENCRYPTION_KEY` in `.env.local`.
+5. Initialize schema:
+   ```bash
+   npm run db:init
+   ```
+6. If you have old local-file data, migrate it:
+   ```bash
+   npm run db:migrate-local
+   ```
+   Optional source override:
+   ```bash
+   MIGRATION_SOURCE_PATH=/absolute/path/to/store.v1.json npm run db:migrate-local
+   ```
+7. Validate app locally:
+   ```bash
+   npm run lint
+   npm run build
+   npm run dev
+   ```
+8. In Vercel project settings, add the same env vars:
+   - `DATABASE_URL`
+   - `APP_DATA_ENCRYPTION_KEY`
+   - `GOOGLE_GENERATIVE_AI_API_KEY`
+9. Deploy to Vercel and verify:
+   - Create account/login works
+   - Dashboard data persists after refresh
+   - `/api/chat` returns valid responses
+10. After successful cutover, stop using `.secure-data/store.v1.json` as the source of truth.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Privacy and Security Notes
+
+- Passwords are hashed using `scrypt` with per-password salt.
+- Session cookies are `HttpOnly` and server-validated.
+- Private profile/dashboard payload is encrypted before writing to Postgres (`encrypted_data` column).
+- Public GitHub source code does not expose your runtime secrets unless you commit env files or paste keys into code.
+
+## Scripts
+
+- `npm run dev` - start dev server
+- `npm run lint` - run ESLint
+- `npm run build` - production build check
+- `npm run db:init` - create managed DB schema
+- `npm run db:migrate-local` - migrate `.secure-data/store.v1.json` into Postgres
+- `npm run key:generate` - generate secure encryption key values

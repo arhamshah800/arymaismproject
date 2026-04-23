@@ -4,7 +4,16 @@ import { z } from "zod";
 
 export const maxDuration = 60;
 
-const modeSchema = z.enum(["chatbot", "inventory", "reviews", "menu", "personality"]);
+const modeSchema = z.enum([
+  "chatbot",
+  "inventory",
+  "reviews",
+  "menu",
+  "personality",
+  "menuUpload",
+  "recipe",
+  "costing",
+]);
 
 const messageSchema = z.object({
   role: z.enum(["system", "user", "assistant"]),
@@ -119,6 +128,27 @@ Act as a personality-based order recommendation engine.
 Infer customer style from the conversation (adventurous, comfort-seeking, health-focused, budget-minded, etc.).
 Then propose personalized menu orders and a matching add-on strategy.
 Explain the reasoning in plain language.
+    `.trim(),
+    menuUpload: `
+Act as a menu consultant reviewing an existing restaurant menu.
+Always look for:
+- confusing item names or descriptions
+- category gaps
+- weak upsell opportunities
+- items that may overwhelm or underperform
+- clearer positioning for customer decision-making
+Respond with practical recommendations, not abstract branding language.
+    `.trim(),
+    recipe: `
+Act as a recipe generator for working restaurant kitchens.
+Prioritize operational practicality, prep flow, cost awareness, and menu fit.
+When generating a dish, include ingredients, prep method, service notes, and why the dish belongs on the menu.
+    `.trim(),
+    costing: `
+Act as a restaurant cost and margin checker.
+Look for underpriced items, margin leaks, and where cost structure is too heavy.
+Whenever numbers are partial, estimate cautiously and clearly state assumptions.
+Focus on decisions the operator can make this week.
     `.trim(),
   };
 

@@ -44,7 +44,6 @@ export type AuthenticatedUser = {
 };
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
-
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -444,6 +443,111 @@ export async function createEmployeeAccountByOwnerSessionToken(
   });
 }
 
+export async function issuePasswordResetToken(email: string): Promise<string | null> {
+  const normalizedEmail = normalizeEmail(email);
+
+  return withTransaction(async (client) => {
+    await cleanupExpiredSessions(client);
+
+    const accountResult = await client.query<{ email: string }>(
+      `
+        SELECT email
+        FROM app_users
+        WHERE email = $1
+        LIMIT 1
+      `,
+      [normalizedEmail],
+    );
+
+    const account = accountResult.rows[0];
+    if (!account) {
+      return null;
+    }
+
+    const token = generateSessionToken();
+    const tokenHash = hashSessionToken(token);
+
+    await client.query(
+      `
+        DELETE FROM app_password_resets
+        WHERE email = $1
+           OR expires_at <= NOW()
+           OR used_at IS NOT NULL
+      `,
+      [normalizedEmail],
+    );
+
+    await client.query(
+      `
+        INSERT INTO app_password_resets (token_hash, email, created_at, expires_at, used_at)
+        VALUES ($1, $2, NOW(), NOW() + INTERVAL '30 minutes', NULL)
+      `,
+      [tokenHash, normalizedEmail],
+    );
+
+    return token;
+  });
+}
+
+export async function resetPasswordWithToken(
+  token: string,
+  password: string,
+): Promise<{ userEmail: string }> {
+  const tokenHash = hashSessionToken(token);
+
+  return withTransaction(async (client) => {
+    await cleanupExpiredSessions(client);
+
+    await client.query(
+      `
+        DELETE FROM app_password_resets
+        WHERE expires_at <= NOW()
+      `,
+    );
+
+    const resetResult = await client.query<{ email: string }>(
+      `
+        SELECT email
+        FROM app_password_resets
+        WHERE token_hash = $1
+          AND expires_at > NOW()
+          AND used_at IS NULL
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [tokenHash],
+    );
+
+    const resetRow = resetResult.rows[0];
+    if (!resetRow) {
+      throw new Error("This password reset link is invalid or expired.");
+    }
+
+    await client.query(
+      `
+        UPDATE app_users
+        SET password_hash = $2,
+            updated_at = NOW()
+        WHERE email = $1
+      `,
+      [resetRow.email, hashPassword(password)],
+    );
+
+    await client.query(
+      `
+        UPDATE app_password_resets
+        SET used_at = NOW()
+        WHERE token_hash = $1
+      `,
+      [tokenHash],
+    );
+
+    await client.query("DELETE FROM app_sessions WHERE email = $1", [resetRow.email]);
+
+    return { userEmail: resetRow.email };
+  });
+}
+
 export async function initializeManagedSchema(): Promise<void> {
   const pool = getPool();
 
@@ -481,6 +585,24 @@ export async function initializeManagedSchema(): Promise<void> {
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_app_users_owner_email ON app_users(owner_email);
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_password_resets (
+      token_hash TEXT PRIMARY KEY,
+      email TEXT NOT NULL REFERENCES app_users(email) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ NULL
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_app_password_resets_email ON app_password_resets(email);
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_app_password_resets_expires_at ON app_password_resets(expires_at);
   `);
 }
 
